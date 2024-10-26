@@ -1,0 +1,18 @@
+{
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none"
+    },
+    "python.terminal.activateEnvironment": false,
+    "micropico.syncFolder": "",
+    "micropico.openOnStart": false,
+    "python.analysis.typeshedPaths": [
+        "~/.micropico-stubs/micropython-esp32-stubs==1.23.0a87"
+    ],
+    "python.analysis.extraPaths": [
+        "~/.micropico-stubs/micropython-esp32-stubs==1.23.0a87"
+    ],
+    "micropico.manualComDevice": "/dev/cu.usbserial-0001",
+    "micropico.autoConnect": false
+}
