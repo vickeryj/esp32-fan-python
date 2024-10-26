@@ -1,14 +1,19 @@
 import asyncio
+from mqtt_as import MQTTClient, config
+import machine
+
 import dont_commit
 
-from mqtt_as import MQTTClient, config
+pwm_pin = machine.Pin(17)
+pwm = machine.PWM(pwm_pin)
+pwm.freq(25000)
 
 
 config['server'] = '192.168.1.82'
 config['ssid'] = '4101'
 config['wifi_pw'] = dont_commit.secrets['wifi_pw']
 
-device_name = 'esp32_fan_python'
+device_name = 'esp32_fan_python_3'
 discover_payload = \
 f'{{"name" :null, \
 "unique_id":"{device_name}", \
@@ -22,7 +27,7 @@ f'{{"name" :null, \
 "percentage_state_topic": "~/stat/FANPWM", \
 "percentage_command_topic": "~/cmnd/FANPWM", \
 "speed_range_min": 1, \
-"speed_range_max": 255, \
+"speed_range_max": 65535, \
 "availability_topic":"~/stat/STATUS", \
 "dev": {{"name":"{device_name}", \
 "model":"{device_name}", \
@@ -43,18 +48,18 @@ async def up(client):  # Respond to connectivity being (re)established
         await client.subscribe('homeassistant/status', 1)
         await client.subscribe(f'{device_name}/cmnd/FANPWM', 1)
         await client.publish(f'homeassistant/fan/{device_name}/config', discover_payload)
+        await client.publish(f'{device_name}/stat/STATUS', "online")
 
 async def main(client):
     await client.connect()
     for coroutine in (up, messages):
         asyncio.create_task(coroutine(client))
-    n = 0
     while True:
         await asyncio.sleep(5)
-        print('publish', n)
-        # If WiFi is down the following will pause for the duration.
-        await client.publish('result', '{}'.format(n), qos = 1)
-        n += 1
+        pwm_value = f'{pwm.duty()}'
+        print(f'publish: {pwm_value}')
+        await client.publish(f'{device_name}/stat/FANPWM', pwm_value, qos = 1)
+       
 
 config["queue_len"] = 1  # Use event interface with default queue size
 MQTTClient.DEBUG = True  # Optional: print diagnostic messages
