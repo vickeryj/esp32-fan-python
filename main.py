@@ -27,7 +27,7 @@ f'{{"name" :null, \
 "percentage_state_topic": "~/stat/FANPWM", \
 "percentage_command_topic": "~/cmnd/FANPWM", \
 "speed_range_min": 1, \
-"speed_range_max": 65535, \
+"speed_range_max": 1023, \
 "availability_topic":"~/stat/STATUS", \
 "dev": {{"name":"{device_name}", \
 "model":"{device_name}", \
@@ -36,10 +36,12 @@ f'{{"name" :null, \
 }}}}'
 
 async def messages(client):  # Respond to incoming messages
-    # If MQTT V5is used this would read
-    # async for topic, msg, retained, properties in client.queue:
     async for topic, msg, retained in client.queue:
-        print(topic.decode(), msg.decode(), retained)
+        decoded_topic = topic.decode()
+        decoded_message = msg.decode()
+        if decoded_topic == f'{device_name}/cmnd/FANPWM':
+            pwm.duty(int(decoded_message))
+        print(decoded_topic, decoded_message, retained)
 
 async def up(client):  # Respond to connectivity being (re)established
     while True:
@@ -48,7 +50,7 @@ async def up(client):  # Respond to connectivity being (re)established
         await client.subscribe('homeassistant/status', 1)
         await client.subscribe(f'{device_name}/cmnd/FANPWM', 1)
         await client.publish(f'homeassistant/fan/{device_name}/config', discover_payload)
-        await client.publish(f'{device_name}/stat/STATUS', "online")
+        
 
 async def main(client):
     await client.connect()
@@ -58,6 +60,8 @@ async def main(client):
         await asyncio.sleep(5)
         pwm_value = f'{pwm.duty()}'
         print(f'publish: {pwm_value}')
+        await client.publish(f'{device_name}/stat/STATUS', "online")
+        await client.publish(f'{device_name}/stat/MODE', "fan_only")
         await client.publish(f'{device_name}/stat/FANPWM', pwm_value, qos = 1)
        
 
