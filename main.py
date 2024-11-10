@@ -1,21 +1,19 @@
 import asyncio
-from machine import Pin, reset
+from machine import Pin, reset, PWM
 
 import home_assistant_mqtt
 
-
-from mqtt_as import MQTTClient, config
-import machine
-
-import dont_commit
-
-pwm_pin = machine.Pin(17)
-pwm = machine.PWM(pwm_pin)
+pwm_pin = Pin(12)
+pwm = PWM(pwm_pin)
 pwm.freq(25000)
-mqtt = home_assistant_mqtt.HomeAssistantMQTT(pwm)
+
+relay_pin = Pin(13, Pin.OUT)
+
+home_ass_mqtt = home_assistant_mqtt.HomeAssistantMQTT(pwm, relay_pin)
+
 try:
-    asyncio.run(mqtt.start())
-except KeyboardInterrupt:
+    asyncio.run(home_ass_mqtt.start())
+except SystemExit:
     reset()
 finally:
-    mqtt.close()
+    home_ass_mqtt.close()

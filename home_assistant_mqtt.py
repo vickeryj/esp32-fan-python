@@ -1,13 +1,15 @@
 import asyncio
 from mqtt_as import MQTTClient, config
-import machine
 
 import dont_commit
 
 class HomeAssistantMQTT:
 
-    def __init__(self, pwm):
+    def __init__(self, pwm, relay_pin):
         self.pwm = pwm
+        self.relay_pin = relay_pin
+        self.relay_pin.off()
+        self.fan_mode = 'off'
         config['server'] = '192.168.1.82'
         config['ssid'] = '4101'
         config['wifi_pw'] = dont_commit.secrets['wifi_pw']
@@ -44,6 +46,7 @@ class HomeAssistantMQTT:
             self.client.up.clear()
             await self.client.subscribe('homeassistant/status', 1)
             await self.client.subscribe(f'{self.device_name}/cmnd/FANPWM', 1)
+            await self.client.subscribe(f'{self.device_name}/cmnd/MODE', 1)
             await self.client.publish(f'homeassistant/fan/{self.device_name}/config', self.discover_payload)
     
     async def process(self):
@@ -52,6 +55,12 @@ class HomeAssistantMQTT:
             decoded_message = msg.decode()
             if decoded_topic == f'{self.device_name}/cmnd/FANPWM':
                 self.pwm.duty(int(decoded_message))
+            elif decoded_topic == f'{self.device_name}/cmnd/MODE':
+                if decoded_message == "fan_only":
+                    self.relay_pin.on()
+                else:
+                    self.relay_pin.off()
+                self.fan_mode = decoded_message
             print(decoded_topic, decoded_message, retained)
 
     async def start(self):
@@ -64,7 +73,7 @@ class HomeAssistantMQTT:
             pwm_value = f'{self.pwm.duty()}'
             print(f'publish: {pwm_value}')
             await self.client.publish(f'{self.device_name}/stat/STATUS', "online")
-            await self.client.publish(f'{self.device_name}/stat/MODE', "fan_only")
+            await self.client.publish(f'{self.device_name}/stat/MODE', self.fan_mode)
             await self.client.publish(f'{self.device_name}/stat/FANPWM', pwm_value, qos = 1)
 
     def close(self):
