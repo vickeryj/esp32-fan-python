@@ -5,13 +5,33 @@ class WDT_NOP:
     def feed(self):
         return
 
+class DummyOLED:
+    def text(self, _, __, ___):
+        return
+
+    def fill(self, _):
+        return
+
+    def show(self):
+        return
+
+    def poweron(self):
+        return
+
+    def poweroff(self):
+        return
+
 class Show:
 
     def __init__(self, wdt = WDT_NOP()):
         oled_i2c = I2C(1, sda=Pin(21), scl=Pin(22), freq=200000)
-        self.oled = SSD1306_I2C(128, 64, oled_i2c)
         self.lines = []
-        self.wdt = wdt;
+        try:
+            self.oled = SSD1306_I2C(128, 64, oled_i2c)
+        except:
+            print('Failed to initialize screen')
+            self.oled = DummyOLED()
+        self.wdt = wdt
 
     def line(self, text):
         self.wdt.feed()

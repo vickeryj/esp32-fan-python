@@ -17,7 +17,7 @@ class HomeAssistantMQTT:
         config["queue_len"] = 1
         MQTTClient.DEBUG = True
 
-        self.device_name = 'esp32_fan_python_testing'
+        self.device_name = 'esp32_fan_python_3'
 
         self.discover_payload = \
         f'{{"name" :null, \
