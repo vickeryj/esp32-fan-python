@@ -5,9 +5,10 @@ import dont_commit
 
 class HomeAssistantMQTT:
 
-    def __init__(self, pwm, relay_pin):
+    def __init__(self, pwm, relay_pin, show):
         self.pwm = pwm
         self.relay_pin = relay_pin
+        self.show = show
         self.relay_pin.off()
         self.fan_mode = 'off'
         config['server'] = '192.168.1.82'
@@ -16,7 +17,7 @@ class HomeAssistantMQTT:
         config["queue_len"] = 1
         MQTTClient.DEBUG = True
 
-        self.device_name = 'esp32_fan_python_3'
+        self.device_name = 'esp32_fan_python_testing'
 
         self.discover_payload = \
         f'{{"name" :null, \
@@ -61,17 +62,17 @@ class HomeAssistantMQTT:
                 else:
                     self.relay_pin.off()
                 self.fan_mode = decoded_message
-            print(decoded_topic, decoded_message, retained)
+            self.show.line(f'{decoded_topic}, {decoded_message}, {retained}')
 
     async def start(self):
-        self.client = MQTTClient(config)
+        self.client = MQTTClient(config, self.show)
         await self.client.connect()
         asyncio.create_task(self.listen())
         asyncio.create_task(self.process())
         while True:
             await asyncio.sleep(5)
             pwm_value = f'{self.pwm.duty()}'
-            print(f'publish: {pwm_value}')
+            self.show.line(f'publish: {pwm_value}')
             await self.client.publish(f'{self.device_name}/stat/STATUS', "online")
             await self.client.publish(f'{self.device_name}/stat/MODE', self.fan_mode)
             await self.client.publish(f'{self.device_name}/stat/FANPWM', pwm_value, qos = 1)

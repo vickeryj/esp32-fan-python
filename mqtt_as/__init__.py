@@ -20,7 +20,7 @@ from uerrno import EINPROGRESS, ETIMEDOUT
 
 gc.collect()
 from micropython import const
-from machine import unique_id
+from machine import unique_id, reset
 import network
 
 gc.collect()
@@ -134,7 +134,8 @@ class MQTT_base:
     REPUB_COUNT = 0  # TEST
     DEBUG = False
 
-    def __init__(self, config):
+    def __init__(self, config, show):
+        self.show = show
         self._events = config["queue_len"] > 0
         # MQTT config
         self._client_id = config["client_id"]
@@ -212,6 +213,7 @@ class MQTT_base:
         self._lw_retain = retain
 
     def dprint(self, msg, *args):
+        self.show.line(msg % args)
         if self.DEBUG:
             print(msg % args)
 
@@ -708,8 +710,9 @@ class MQTT_base:
 
 
 class MQTTClient(MQTT_base):
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, show):
+        super().__init__(config, show)
+        self.show = show
         self._isconnected = False  # Current connection state
         keepalive = 1000 * self._keepalive  # ms
         self._ping_interval = keepalive // 4 if keepalive else 20000
@@ -888,13 +891,14 @@ class MQTTClient(MQTT_base):
         return self._isconnected
 
     def _reconnect(self):  # Schedule a reconnection if not underway.
-        if self._isconnected:
-            self._isconnected = False
-            asyncio.create_task(self._kill_tasks(True))  # Shut down tasks and socket
-            if self._events:  # Signal an outage
-                self.down.set()
-            else:
-                asyncio.create_task(self._wifi_handler(False))  # User handler.
+        reset()
+        # if self._isconnected:
+        #     self._isconnected = False
+        #     asyncio.create_task(self._kill_tasks(True))  # Shut down tasks and socket
+        #     if self._events:  # Signal an outage
+        #         self.down.set()
+        #     else:
+        #         asyncio.create_task(self._wifi_handler(False))  # User handler.
 
     # Await broker connection.
     async def _connection(self):
